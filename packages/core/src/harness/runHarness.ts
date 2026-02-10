@@ -223,6 +223,17 @@ async function executePlan(
       nextCtx = withEvidence(nextCtx, r.evidence);
       artifacts[s.expected_artifact || s.step_id] = { query, summary: r.summary, evidence: r.evidence };
 
+      reporter.emit({
+        type: "web_search_result",
+        stepId: `exec:${s.step_id}`,
+        query,
+        sources: r.evidence
+          .filter((e) => typeof e.url === "string" && e.url)
+          .map((e) => ({ url: e.url as string, title: e.title })),
+        completedSteps: completed(),
+        estimatedTotalSteps: estimated(),
+      });
+
       const learned = await summarizeForProgress(openai, cfg, {
         title: `web_search: ${query}`,
         raw: `Summary:\n${r.summary}\n\nEvidence items: ${r.evidence.length}`,

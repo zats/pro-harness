@@ -10,6 +10,14 @@ export type ProgressEvent =
   | ({ type: "step_start"; stepId: string; title: string; detail?: string; completedSteps: number; estimatedTotalSteps: number } & CostSoFar)
   | ({ type: "step_end"; stepId: string; title: string; learned: string; completedSteps: number; estimatedTotalSteps: number } & CostSoFar)
   | ({
+      type: "web_search_result";
+      stepId: string;
+      query: string;
+      sources: { url: string; title?: string }[];
+      completedSteps: number;
+      estimatedTotalSteps: number;
+    } & CostSoFar)
+  | ({
       type: "step_detail";
       stepId: string;
       title: string;

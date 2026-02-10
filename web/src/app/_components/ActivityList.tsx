@@ -14,8 +14,10 @@ export function ActivityList({ items, running }: { items: UiItem[]; running?: bo
     <div className="activity" aria-label="activity">
       {items.map((it) => (
         <div key={it.id} className="activityItem">
-          <div className="activityMarker">
-            <Marker kind={it.kind} />
+          <div className="activityGutter" aria-hidden="true">
+            <div className="activityMarker">
+              <Marker kind={it.kind} />
+            </div>
           </div>
           <div className="activityContent">
             <div className="activityTitle">{it.title}</div>
@@ -36,8 +38,10 @@ export function ActivityList({ items, running }: { items: UiItem[]; running?: bo
       ))}
       {running ? (
         <div className="activityItem">
-          <div className="activityMarker">
-            <Loader2 size={16} color="rgba(11,18,32,0.45)" className="spin" />
+          <div className="activityGutter" aria-hidden="true">
+            <div className="activityMarker">
+              <Loader2 size={16} color="rgba(11,18,32,0.45)" className="spin" />
+            </div>
           </div>
           <div className="activityContent">
             <div className="activityTitle">Working…</div>
@@ -47,4 +51,3 @@ export function ActivityList({ items, running }: { items: UiItem[]; running?: bo
     </div>
   );
 }
-

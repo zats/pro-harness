@@ -194,7 +194,7 @@ pre {
 
 .activity {
   position: relative;
-  padding-left: 26px;
+  padding-left: 0;
   margin: 4px 0 10px;
 }
 
@@ -212,11 +212,19 @@ pre {
 .activityItem {
   position: relative;
   padding: 0 0 16px;
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  align-items: start;
+}
+
+.activityGutter {
+  position: relative;
+  min-height: 20px;
 }
 
 .activityMarker {
-  position: absolute;
-  left: 1px;
+  position: relative;
+  left: 0;
   top: 2px;
   width: 20px;
   height: 20px;
@@ -318,4 +326,3 @@ pre {
     transform: rotate(360deg);
   }
 }
-

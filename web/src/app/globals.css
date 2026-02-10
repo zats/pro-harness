@@ -254,9 +254,60 @@ textarea:focus {
 }
 
 .answer {
-  white-space: pre-wrap;
+  white-space: normal;
   line-height: 1.5;
   font-size: 14px;
+}
+
+.answer p {
+  margin: 0.65em 0;
+}
+
+.answer ul,
+.answer ol {
+  margin: 0.65em 0;
+  padding-left: 1.25em;
+}
+
+.answer li {
+  margin: 0.25em 0;
+}
+
+.answer pre {
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  overflow: auto;
+}
+
+.answer code {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.answer :not(pre) > code {
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.answer blockquote {
+  margin: 0.8em 0;
+  padding: 0.2em 0.8em;
+  border-left: 3px solid rgba(103, 232, 249, 0.55);
+  color: var(--muted);
+}
+
+.answer a {
+  color: rgba(103, 232, 249, 0.95);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(103, 232, 249, 0.35);
+}
+
+.answer a:hover {
+  border-bottom-color: rgba(103, 232, 249, 0.75);
 }
 
 .muted {

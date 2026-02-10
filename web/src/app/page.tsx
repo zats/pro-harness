@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Activity,
   BadgeCheck,
@@ -314,7 +316,13 @@ export default function HomePage() {
             </div>
           </div>
           <div className="cardBody">
-            {answer ? <div className="answer">{answer}</div> : <div className="muted">Run the harness to see an answer.</div>}
+            {answer ? (
+              <div className="answer">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{answer}</ReactMarkdown>
+              </div>
+            ) : (
+              <div className="muted">Run the harness to see an answer.</div>
+            )}
           </div>
         </div>
       </div>

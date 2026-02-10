@@ -1,25 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Globe, Loader2 } from "lucide-react";
-
-type UiCitation = {
-  domain: string;
-  url: string;
-  faviconUrl: string;
-  title?: string;
-};
-
-type UiItem = {
-  id: string;
-  kind: "thought" | "search";
-  title: string;
-  body?: string;
-  citations?: UiCitation[];
-  moreCount?: number;
-};
+import { Square } from "lucide-react";
+import { ActivityList } from "./_components/ActivityList";
+import { Message } from "./_components/Message";
+import type { UiItem } from "./types";
 
 type AnyEvent =
   | { type: "ui_item"; item: UiItem }
@@ -28,29 +15,21 @@ type AnyEvent =
   | { type: "final_answer"; text: string }
   | { type: "error"; message: string };
 
-function Marker({ kind, spinning }: { kind: UiItem["kind"]; spinning?: boolean }) {
-  if (kind === "search") return <Globe size={18} color="rgba(11,18,32,0.55)" />;
-  return <span className="dot" />;
-}
-
 export default function HomePage() {
-  const [prompt, setPrompt] = useState("Search for the latest information about healthy fruits and cite sources.");
+  const [prompt, setPrompt] = useState("");
+  const [sentPrompt, setSentPrompt] = useState("");
   const [running, setRunning] = useState(false);
   const [items, setItems] = useState<UiItem[]>([]);
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState("");
-  const [autoScroll, setAutoScroll] = useState(true);
   const [convoId, setConvoId] = useState<string>("");
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const lastTitle = useMemo(() => items.at(-1)?.title ?? "", [items]);
-
   useEffect(() => {
-    if (!autoScroll) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [items, answer, autoScroll]);
+  }, [items, answer, error, running]);
 
   async function run() {
     setError("");
@@ -58,6 +37,8 @@ export default function HomePage() {
     setItems([]);
     setRunning(true);
     setConvoId("");
+    const input = prompt.trim();
+    setSentPrompt(input);
 
     const ac = new AbortController();
     abortRef.current = ac;
@@ -66,7 +47,7 @@ export default function HomePage() {
       const res = await fetch("/api/run", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ prompt, verbosity: 1, summarizeUi: true }),
+        body: JSON.stringify({ prompt: input, verbosity: 1, summarizeUi: true }),
         signal: ac.signal,
       });
 
@@ -131,85 +112,67 @@ export default function HomePage() {
   }
 
   return (
-    <div className="wrap">
-      <div className="top">
-        <div>
-          <div className="title">pro-harness</div>
-          <div className="sub">A minimal, human-readable trace.</div>
-        </div>
-        <div className="row">
-          <button className={`btn btnPrimary`} onClick={run} disabled={running}>
-            {running ? "Running" : "Run"}
-          </button>
-          <button className={`btn btnDanger`} onClick={stop} disabled={!running}>
-            Stop
-          </button>
-        </div>
+    <div className="app">
+      <div className="header">
+        <a className="brand" href="/" aria-label="pro-harness home">
+          pro-harness
+        </a>
       </div>
 
-      <div className="panel">
-        <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} disabled={running} />
-        <div className="row" style={{ marginTop: 10, justifyContent: "space-between" }}>
-          <div className="muted">
-            {convoId ? (
-              <>
-                <a href={`/${encodeURIComponent(convoId)}`} style={{ color: "inherit", textDecoration: "none" }}>
-                  <code>{convoId}</code>
-                </a>
-                {" · "}
-              </>
-            ) : null}
-            {running ? (lastTitle ? `Now: ${lastTitle}` : "Working…") : error ? "Error" : "Idle"}
-          </div>
-          <button className="btn" onClick={() => setAutoScroll((v) => !v)} disabled={!items.length}>
-            {autoScroll ? "Lock" : "Follow"}
-          </button>
-        </div>
-        {error ? <div style={{ marginTop: 8, color: "rgba(244,63,94,0.9)", fontSize: 13, whiteSpace: "pre-wrap" }}>{error}</div> : null}
-      </div>
+      <div className="thread" aria-label="thread">
+        {sentPrompt ? (
+          <Message role="user">
+            <div style={{ whiteSpace: "pre-wrap" }}>{sentPrompt}</div>
+          </Message>
+        ) : null}
 
-      <div className="timeline" aria-label="timeline">
-        {items.map((it) => (
-          <div key={it.id} className="item">
-            <div className="marker">
-              <Marker kind={it.kind} />
-            </div>
-            <h4 className="h">{it.title}</h4>
-            {it.citations && it.citations.length ? (
-              <div className="chips" aria-label="citations">
-                {it.citations.slice(0, 3).map((c) => (
-                  <a key={c.url} className="chip" href={c.url} target="_blank" rel="noreferrer" title={c.url}>
-                    <img src={c.faviconUrl} alt="" />
-                    {c.domain}
-                  </a>
-                ))}
-                {it.moreCount && it.moreCount > 0 ? <span className="chip">{it.moreCount} more</span> : null}
+        {sentPrompt && (running || items.length > 0 || Boolean(answer) || Boolean(error)) ? (
+          <Message role="assistant">
+            <ActivityList items={items} running={running} />
+
+            {error ? <div className="err">{error}</div> : null}
+
+            {answer ? (
+              <div className="md">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{answer}</ReactMarkdown>
               </div>
             ) : null}
-            {it.body ? <div className="p">{it.body}</div> : null}
-          </div>
-        ))}
-        {running ? (
-          <div className="item">
-            <div className="marker">
-              <Loader2 size={18} color="rgba(11,18,32,0.45)" className="spin" />
-            </div>
-            <h4 className="h">Working</h4>
-            <div className="p">…</div>
-          </div>
+          </Message>
         ) : null}
+
         <div ref={bottomRef} />
       </div>
 
-      <div className="answer">
-        <h3>Answer</h3>
-        {answer ? (
-          <div className="answerBody">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{answer}</ReactMarkdown>
+      <div className="composer" aria-label="composer">
+        <form
+          className="composerInner"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (running) return;
+            if (!prompt.trim()) return;
+            run();
+          }}
+        >
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            disabled={running}
+            placeholder="Message pro-harness…"
+          />
+          <div className="composerActions">
+            {running ? (
+              <button className="iconBtn" type="button" onClick={stop} aria-label="Stop">
+                <Square size={18} />
+              </button>
+            ) : (
+              <button className="sendBtn" type="submit" disabled={!prompt.trim()}>
+                Run
+              </button>
+            )}
           </div>
-        ) : (
-          <div className="muted">Run the harness to see an answer.</div>
-        )}
+        </form>
+        {/* Hidden state, but keep around so /{id} works on reload. */}
+        <div style={{ display: "none" }}>{convoId}</div>
       </div>
     </div>
   );

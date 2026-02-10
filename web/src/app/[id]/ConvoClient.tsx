@@ -3,23 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Globe } from "lucide-react";
-
-type UiCitation = {
-  domain: string;
-  url: string;
-  faviconUrl: string;
-  title?: string;
-};
-
-type UiItem = {
-  id: string;
-  kind: "thought" | "search";
-  title: string;
-  body?: string;
-  citations?: UiCitation[];
-  moreCount?: number;
-};
+import { ActivityList } from "../_components/ActivityList";
+import { Message } from "../_components/Message";
+import type { UiItem } from "../types";
 
 type Loaded = {
   id: string;
@@ -28,11 +14,6 @@ type Loaded = {
   answer?: string;
   eventsCount: number;
 };
-
-function Marker({ kind }: { kind: UiItem["kind"] }) {
-  if (kind === "search") return <Globe size={18} color="rgba(11,18,32,0.55)" />;
-  return <span className="dot" />;
-}
 
 export default function ConvoClient({ id }: { id: string }) {
   const [data, setData] = useState<Loaded | null>(null);
@@ -55,15 +36,16 @@ export default function ConvoClient({ id }: { id: string }) {
 
   if (err) {
     return (
-      <div className="wrap">
-        <div className="top">
-          <div>
-            <div className="title">pro-harness</div>
-            <div className="sub">Conversation</div>
-          </div>
+      <div className="app">
+        <div className="header">
+          <a className="brand" href="/" aria-label="pro-harness home">
+            pro-harness
+          </a>
         </div>
-        <div className="panel">
-          <div style={{ color: "rgba(244,63,94,0.9)", fontSize: 13 }}>{err}</div>
+        <div className="thread">
+          <Message role="assistant">
+            <div className="err">{err}</div>
+          </Message>
         </div>
       </div>
     );
@@ -71,76 +53,52 @@ export default function ConvoClient({ id }: { id: string }) {
 
   if (!data) {
     return (
-      <div className="wrap">
-        <div className="top">
-          <div>
-            <div className="title">pro-harness</div>
-            <div className="sub">Loading…</div>
-          </div>
+      <div className="app">
+        <div className="header">
+          <a className="brand" href="/" aria-label="pro-harness home">
+            pro-harness
+          </a>
         </div>
-        <div className="panel">
-          <div className="muted">Loading conversation…</div>
+        <div className="thread">
+          <Message role="assistant">
+            <div className="muted">Loading…</div>
+          </Message>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="wrap">
-      <div className="top">
-        <div>
-          <div className="title">pro-harness</div>
-          <div className="sub">
-            <code>{data.id}</code> · {data.meta.finishedAt ? "Finished" : "In progress"}
-          </div>
-        </div>
-        <div className="row">
-          <a className="btn" href="/" style={{ textDecoration: "none" }}>
-            New run
-          </a>
-        </div>
+    <div className="app">
+      <div className="header">
+        <a className="brand" href="/" aria-label="pro-harness home">
+          pro-harness
+        </a>
+        <a className="ghostBtn" href="/" aria-label="New run">
+          New
+        </a>
       </div>
 
-      <div className="panel">
-        <div className="muted" style={{ marginBottom: 8 }}>
-          Prompt
-        </div>
-        <div style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.35 }}>{data.meta.prompt}</div>
-      </div>
+      <div className="thread" aria-label="thread">
+        <Message role="user">
+          <div style={{ whiteSpace: "pre-wrap" }}>{data.meta.prompt}</div>
+        </Message>
 
-      <div className="timeline" aria-label="timeline">
-        {data.items.map((it) => (
-          <div key={it.id} className="item">
-            <div className="marker">
-              <Marker kind={it.kind} />
+        <Message role="assistant">
+          <ActivityList items={data.items} running={!data.meta.finishedAt && !data.meta.error} />
+
+          {data.meta.error ? <div className="err">{data.meta.error}</div> : null}
+
+          {data.answer ? (
+            <div className="md">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.answer}</ReactMarkdown>
             </div>
-            <h4 className="h">{it.title}</h4>
-            {it.citations && it.citations.length ? (
-              <div className="chips" aria-label="citations">
-                {it.citations.slice(0, 3).map((c) => (
-                  <a key={c.url} className="chip" href={c.url} target="_blank" rel="noreferrer" title={c.url}>
-                    <img src={c.faviconUrl} alt="" />
-                    {c.domain}
-                  </a>
-                ))}
-                {it.moreCount && it.moreCount > 0 ? <span className="chip">{it.moreCount} more</span> : null}
-              </div>
-            ) : null}
-            {it.body ? <div className="p">{it.body}</div> : null}
-          </div>
-        ))}
-        <div ref={bottomRef} />
-      </div>
+          ) : (
+            <div className="muted">No answer recorded yet.</div>
+          )}
+        </Message>
 
-      <div className="answer">
-        <h3>Answer</h3>
-        {data.answer ? (
-          <div className="answerBody">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.answer}</ReactMarkdown>
-          </div>
-        ) : (
-          <div className="muted">No answer recorded yet.</div>
-        )}
+        <div ref={bottomRef} />
       </div>
     </div>
   );

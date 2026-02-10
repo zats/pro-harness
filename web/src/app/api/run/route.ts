@@ -4,6 +4,7 @@ import OpenAI from "openai";
 import { z } from "zod";
 import type { ProgressEvent, Reporter } from "pro-harness-core";
 import { loadConfig, runHarness } from "pro-harness-core";
+import { appendEvent, finishConversation, initConversation, newConversationId } from "../../../server/convoStore";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,7 @@ export const runtime = "nodejs";
 dotenv.config({ path: path.resolve(process.cwd(), "..", ".env") });
 
 const BodySchema = z.object({
+  id: z.string().optional(),
   prompt: z.string().min(1),
   verbosity: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).default(1),
   summarizeUi: z.boolean().optional().default(true),
@@ -90,6 +92,16 @@ export async function POST(req: Request) {
   // Always run core at max verbosity so we can generate clean UI summaries, even if the UI hides details.
   const cfg = loadConfig({ pretty: false, jsonl: true, verbosity: 3 });
 
+  const convoId = body.data.id ?? newConversationId();
+  try {
+    await initConversation({ id: convoId, prompt: body.data.prompt });
+  } catch (e: any) {
+    if (String(e?.message) === "invalid_conversation_id") {
+      return new Response(JSON.stringify({ error: "invalid_id" }), { status: 400 });
+    }
+    throw e;
+  }
+
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       const enc = new TextEncoder();
@@ -108,10 +120,16 @@ export async function POST(req: Request) {
       const uiItem = (item: UiItem) => send({ type: "ui_item", item });
       const uiPatch = (id: string, patch: Partial<UiItem>) => send({ type: "ui_patch", id, patch });
 
+      // First event: conversation id, so the client can update URL.
+      void appendEvent({ id: convoId, event: { type: "convo_id", id: convoId } });
+      send({ type: "convo_id", id: convoId });
+
       req.signal.addEventListener(
         "abort",
         () => {
           send({ type: "error", message: "aborted" });
+          void appendEvent({ id: convoId, event: { type: "error", message: "aborted" } });
+          void finishConversation({ id: convoId, error: "aborted" });
           closed = true;
           try {
             controller.close();
@@ -155,9 +173,13 @@ export async function POST(req: Request) {
               const title = body.data.summarizeUi
                 ? await nanoTitle(openai, { kind: "search", input: `Query: ${e.query}\nDomains: ${domains.map((d) => d.domain).join(", ")}` })
                 : `Searching for ${e.query}`;
-              uiItem({ id, kind: "search", title, citations, moreCount });
+              const item: UiItem = { id, kind: "search", title, citations, moreCount };
+              await appendEvent({ id: convoId, event: { type: "ui_item", item } });
+              uiItem(item);
             })().catch(() => {
-              uiItem({ id, kind: "search", title: `Searching for ${e.query}`, citations, moreCount });
+              const item: UiItem = { id, kind: "search", title: `Searching for ${e.query}`, citations, moreCount };
+              void appendEvent({ id: convoId, event: { type: "ui_item", item } });
+              uiItem(item);
             });
 
             pending.push(p);
@@ -170,6 +192,7 @@ export async function POST(req: Request) {
             if (sid) {
               const p = (async () => {
                 const text = body.data.summarizeUi ? await nanoBody(openai, `Query result summary:\n${e.learned}`) : e.learned;
+                await appendEvent({ id: convoId, event: { type: "ui_patch", id: sid, patch: { body: text } } });
                 uiPatch(sid, { body: text });
               })().catch(() => uiPatch(sid, { body: e.learned }));
               pending.push(p);
@@ -182,8 +205,14 @@ export async function POST(req: Request) {
               const p = (async () => {
                 const title = await nanoTitle(openai, { kind: "thought", input: `User prompt:\n${body.data.prompt}` });
                 const text = await nanoBody(openai, `What the harness will do next (high level):\n${e.learned}`);
-                uiItem({ id, kind: "thought", title, body: text });
-              })().catch(() => uiItem({ id, kind: "thought", title: "Planning next steps", body: e.learned }));
+                const item: UiItem = { id, kind: "thought", title, body: text };
+                await appendEvent({ id: convoId, event: { type: "ui_item", item } });
+                uiItem(item);
+              })().catch(() => {
+                const item: UiItem = { id, kind: "thought", title: "Planning next steps", body: e.learned };
+                void appendEvent({ id: convoId, event: { type: "ui_item", item } });
+                uiItem(item);
+              });
               pending.push(p);
               return;
             }
@@ -196,11 +225,16 @@ export async function POST(req: Request) {
       (async () => {
         try {
           const result = await runHarness({ input: body.data.prompt, config: cfg, reporter, signal: req.signal });
+          await appendEvent({ id: convoId, event: { type: "final_answer", text: result.finalAnswer } });
           send({ type: "final_answer", text: result.finalAnswer });
           await Promise.allSettled(pending);
+          await finishConversation({ id: convoId });
         } catch (err: any) {
           if (!req.signal.aborted) {
-            send({ type: "error", message: String(err?.message ?? err), stack: String(err?.stack ?? "") });
+            const msg = String(err?.message ?? err);
+            await appendEvent({ id: convoId, event: { type: "error", message: msg } });
+            await finishConversation({ id: convoId, error: msg });
+            send({ type: "error", message: msg, stack: String(err?.stack ?? "") });
           }
         } finally {
           closed = true;

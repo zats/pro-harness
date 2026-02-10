@@ -24,6 +24,7 @@ type UiItem = {
 type AnyEvent =
   | { type: "ui_item"; item: UiItem }
   | { type: "ui_patch"; id: string; patch: Partial<UiItem> }
+  | { type: "convo_id"; id: string }
   | { type: "final_answer"; text: string }
   | { type: "error"; message: string };
 
@@ -47,6 +48,7 @@ export default function HomePage() {
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState("");
   const [autoScroll, setAutoScroll] = useState(true);
+  const [convoId, setConvoId] = useState<string>("");
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -63,6 +65,7 @@ export default function HomePage() {
     setAnswer("");
     setItems([]);
     setRunning(true);
+    setConvoId("");
 
     const ac = new AbortController();
     abortRef.current = ac;
@@ -105,6 +108,13 @@ export default function HomePage() {
               setAnswer(String(evt.text ?? ""));
             } else if (evt.type === "error") {
               setError(String(evt.message ?? "Unknown error"));
+            } else if (evt.type === "convo_id") {
+              const id = String(evt.id ?? "");
+              if (id) {
+                setConvoId(id);
+                // Update URL without navigating (keeps stream alive). Reload will open /{id}.
+                window.history.replaceState({}, "", `/${encodeURIComponent(id)}`);
+              }
             } else if (evt.type === "ui_item") {
               setItems((prev) => [...prev, evt.item]);
             } else if (evt.type === "ui_patch") {
@@ -159,7 +169,17 @@ export default function HomePage() {
             <input type="checkbox" checked={autoScroll} onChange={(e) => setAutoScroll(e.target.checked)} />
             Auto-scroll
           </label>
-          <div className="muted">{running ? (lastTitle ? `Now: ${lastTitle}` : "Working…") : error ? "Error" : "Idle"}</div>
+          <div className="muted">
+            {convoId ? (
+              <>
+                <a href={`/${encodeURIComponent(convoId)}`} style={{ color: "inherit", textDecoration: "none" }}>
+                  <code>{convoId}</code>
+                </a>
+                {" · "}
+              </>
+            ) : null}
+            {running ? (lastTitle ? `Now: ${lastTitle}` : "Working…") : error ? "Error" : "Idle"}
+          </div>
         </div>
         {error ? <div style={{ marginTop: 8, color: "rgba(244,63,94,0.9)", fontSize: 13, whiteSpace: "pre-wrap" }}>{error}</div> : null}
       </div>
@@ -210,4 +230,3 @@ export default function HomePage() {
     </div>
   );
 }
-

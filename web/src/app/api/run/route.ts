@@ -111,7 +111,7 @@ export async function POST(req: Request) {
   const cfg = loadConfig({ pretty: false, jsonl: true, verbosity: 3 });
 
   const convoId = body.data.id ?? newConversationId();
-  const debug = body.data.verbosity >= 2 || process.env.HARNESS_DEBUG === "1";
+  const debug = process.env.NODE_ENV !== "production";
   try {
     await initConversation({ id: convoId, prompt: body.data.prompt });
   } catch (e: any) {

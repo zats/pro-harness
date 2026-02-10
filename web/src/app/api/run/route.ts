@@ -52,7 +52,7 @@ async function nanoTitle(openai: OpenAI, args: { kind: "search" | "thought"; inp
   try {
     const r = await openai.responses.create({
       model: "gpt-5-nano",
-      reasoning: { effort: "low" } as any,
+      reasoning: { effort: "minimal" } as any,
       // Keep headlines short and stable.
       max_output_tokens: 24 as any,
       input: [
@@ -77,7 +77,7 @@ async function nanoBody(openai: OpenAI, input: string, opts?: { debug?: boolean 
   try {
     const r = await openai.responses.create({
       model: "gpt-5-nano",
-      reasoning: { effort: "low" } as any,
+      reasoning: { effort: "minimal" } as any,
       // Force short UI summaries.
       max_output_tokens: 80 as any,
       input: [

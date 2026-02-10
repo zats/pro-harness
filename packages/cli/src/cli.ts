@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runHarness, loadConfig } from "pro-harness-core";
+import { PRODUCT_NAME } from "pro-harness-shared";
 import { ConsoleReporter } from "./progress/ConsoleReporter.js";
 
 // Load repo-root .env even when running from packages/cli.
@@ -43,7 +44,7 @@ function help() {
   console.log(
     [
       "Usage:",
-      "  pro-harness [--pretty|--jsonl] [--max-steps N] \"your task\"",
+      `  ${PRODUCT_NAME} [--pretty|--jsonl] [--max-steps N] \"your task\"`,
       "",
       "Env:",
       `  OPENAI_API_KEY (${key ? `set (len: ${key.length})` : "NOT SET"}; not printed)`,

@@ -16,6 +16,9 @@ importers:
       pro-harness-core:
         specifier: workspace:*
         version: link:../core
+      pro-harness-shared:
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@types/node':
         specifier: ^24.10.12
@@ -32,6 +35,9 @@ importers:
       openai:
         specifier: ^5.23.2
         version: 5.23.2(zod@3.25.76)
+      pro-harness-shared:
+        specifier: workspace:*
+        version: link:../shared
       trash:
         specifier: ^9.0.0
         version: 9.0.0
@@ -42,6 +48,12 @@ importers:
       '@types/node':
         specifier: ^24.10.12
         version: 24.10.12
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/shared:
+    devDependencies:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -63,6 +75,9 @@ importers:
       pro-harness-core:
         specifier: workspace:*
         version: link:../packages/core
+      pro-harness-shared:
+        specifier: workspace:*
+        version: link:../packages/shared
       react:
         specifier: ^19.1.1
         version: 19.2.4

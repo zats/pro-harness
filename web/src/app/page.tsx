@@ -7,6 +7,7 @@ import { Square } from "lucide-react";
 import { ActivityList } from "./_components/ActivityList";
 import { Message } from "./_components/Message";
 import type { UiItem } from "./types";
+import { PRODUCT_NAME } from "pro-harness-shared";
 
 type AnyEvent =
   | { type: "ui_item"; item: UiItem }
@@ -115,8 +116,8 @@ export default function HomePage() {
   return (
     <div className="app">
       <div className="header">
-        <a className="brand" href="/" aria-label="pro-harness home">
-          pro-harness
+        <a className="brand" href="/" aria-label={`${PRODUCT_NAME} home`}>
+          {PRODUCT_NAME}
         </a>
       </div>
 
@@ -158,7 +159,7 @@ export default function HomePage() {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             disabled={running}
-            placeholder="Message pro-harness…"
+            placeholder={`Message ${PRODUCT_NAME}…`}
           />
           <div className="composerActions">
             {running ? (

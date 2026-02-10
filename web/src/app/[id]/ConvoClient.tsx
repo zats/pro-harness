@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { ActivityList } from "../_components/ActivityList";
 import { Message } from "../_components/Message";
 import type { UiItem } from "../types";
+import { PRODUCT_NAME } from "pro-harness-shared";
 
 type Loaded = {
   id: string;
@@ -38,8 +39,8 @@ export default function ConvoClient({ id }: { id: string }) {
     return (
       <div className="app">
         <div className="header">
-          <a className="brand" href="/" aria-label="pro-harness home">
-            pro-harness
+          <a className="brand" href="/" aria-label={`${PRODUCT_NAME} home`}>
+            {PRODUCT_NAME}
           </a>
         </div>
         <div className="thread">
@@ -55,8 +56,8 @@ export default function ConvoClient({ id }: { id: string }) {
     return (
       <div className="app">
         <div className="header">
-          <a className="brand" href="/" aria-label="pro-harness home">
-            pro-harness
+          <a className="brand" href="/" aria-label={`${PRODUCT_NAME} home`}>
+            {PRODUCT_NAME}
           </a>
         </div>
         <div className="thread">
@@ -71,8 +72,8 @@ export default function ConvoClient({ id }: { id: string }) {
   return (
     <div className="app">
       <div className="header">
-        <a className="brand" href="/" aria-label="pro-harness home">
-          pro-harness
+        <a className="brand" href="/" aria-label={`${PRODUCT_NAME} home`}>
+          {PRODUCT_NAME}
         </a>
         <a className="ghostBtn" href="/" aria-label="New run">
           New

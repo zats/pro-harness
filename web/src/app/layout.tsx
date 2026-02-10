@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { PRODUCT_DESCRIPTION, PRODUCT_NAME } from "pro-harness-shared";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "pro-harness",
-  description: "A Pro-style LLM harness runner",
+  title: PRODUCT_NAME,
+  description: PRODUCT_DESCRIPTION,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

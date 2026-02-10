@@ -91,7 +91,7 @@ export default function ConvoClient({ id }: { id: string }) {
         <div>
           <div className="title">pro-harness</div>
           <div className="sub">
-            Conversation <code>{data.id}</code> · {data.meta.finishedAt ? "finished" : "in progress"} · {data.eventsCount} events
+            <code>{data.id}</code> · {data.meta.finishedAt ? "Finished" : "In progress"}
           </div>
         </div>
         <div className="row">
@@ -145,4 +145,3 @@ export default function ConvoClient({ id }: { id: string }) {
     </div>
   );
 }
-

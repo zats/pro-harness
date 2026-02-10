@@ -3,10 +3,13 @@
   --text: #0b1220;
   --muted: rgba(11, 18, 32, 0.62);
   --muted2: rgba(11, 18, 32, 0.46);
-  --line: rgba(11, 18, 32, 0.14);
-  --chip: rgba(11, 18, 32, 0.06);
-  --chipStroke: rgba(11, 18, 32, 0.10);
-  --focus: rgba(59, 130, 246, 0.22);
+  --line: rgba(11, 18, 32, 0.12);
+  --line2: rgba(11, 18, 32, 0.08);
+  --surface: rgba(11, 18, 32, 0.03);
+  --chip: rgba(11, 18, 32, 0.05);
+  --chipStroke: rgba(11, 18, 32, 0.09);
+  --focus: rgba(59, 130, 246, 0.18);
+  --primary: #0a84ff;
 }
 
 * {
@@ -21,7 +24,7 @@ body {
 body {
   margin: 0;
   color: var(--text);
-  background: var(--bg);
+  background: radial-gradient(1200px 520px at 50% -10%, rgba(10, 132, 255, 0.06), transparent 55%), var(--bg);
 }
 
 code,
@@ -30,9 +33,9 @@ pre {
 }
 
 .wrap {
-  max-width: 740px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 18px 16px 60px;
+  padding: 22px 16px 60px;
 }
 
 .top {
@@ -40,13 +43,13 @@ pre {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 6px 0 16px;
+  padding: 0 0 14px;
 }
 
 .title {
   font-weight: 650;
   letter-spacing: -0.02em;
-  font-size: 18px;
+  font-size: 17px;
 }
 
 .sub {
@@ -58,20 +61,22 @@ pre {
 
 .panel {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 12px;
+  background: rgba(255, 255, 255, 0.7);
 }
 
 textarea {
   width: 100%;
-  min-height: 100px;
+  min-height: 92px;
   resize: vertical;
   border-radius: 10px;
   padding: 10px 10px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line2);
   outline: none;
   font-size: 14px;
   line-height: 1.35;
+  background: white;
 }
 
 textarea:focus {
@@ -103,12 +108,12 @@ textarea:focus {
 }
 
 .btnPrimary {
-  border-color: rgba(59, 130, 246, 0.35);
-  background: rgba(59, 130, 246, 0.06);
+  border-color: rgba(10, 132, 255, 0.40);
+  background: rgba(10, 132, 255, 0.08);
 }
 
 .btnDanger {
-  border-color: rgba(244, 63, 94, 0.35);
+  border-color: rgba(244, 63, 94, 0.40);
   background: rgba(244, 63, 94, 0.06);
 }
 
@@ -205,6 +210,7 @@ textarea:focus {
   color: rgba(11, 18, 32, 0.78);
   font-size: 12px;
   line-height: 1;
+  text-decoration: none;
 }
 
 .chip img {
@@ -262,3 +268,15 @@ textarea:focus {
   font-size: 13px;
 }
 
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

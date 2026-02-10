@@ -28,13 +28,6 @@ type AnyEvent =
   | { type: "final_answer"; text: string }
   | { type: "error"; message: string };
 
-function clampVerbosity(v: number): 0 | 1 | 2 | 3 {
-  if (v <= 0) return 0;
-  if (v === 1) return 1;
-  if (v === 2) return 2;
-  return 3;
-}
-
 function Marker({ kind, spinning }: { kind: UiItem["kind"]; spinning?: boolean }) {
   if (kind === "search") return <Globe size={18} color="rgba(11,18,32,0.55)" />;
   return <span className="dot" />;
@@ -42,7 +35,6 @@ function Marker({ kind, spinning }: { kind: UiItem["kind"]; spinning?: boolean }
 
 export default function HomePage() {
   const [prompt, setPrompt] = useState("Search for the latest information about healthy fruits and cite sources.");
-  const [verbosity, setVerbosity] = useState<0 | 1 | 2 | 3>(1);
   const [running, setRunning] = useState(false);
   const [items, setItems] = useState<UiItem[]>([]);
   const [answer, setAnswer] = useState("");
@@ -74,7 +66,7 @@ export default function HomePage() {
       const res = await fetch("/api/run", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ prompt, verbosity, summarizeUi: true }),
+        body: JSON.stringify({ prompt, verbosity: 1, summarizeUi: true }),
         signal: ac.signal,
       });
 
@@ -143,16 +135,9 @@ export default function HomePage() {
       <div className="top">
         <div>
           <div className="title">pro-harness</div>
-          <div className="sub">A clean, human-readable trace of what the harness is doing.</div>
+          <div className="sub">A minimal, human-readable trace.</div>
         </div>
         <div className="row">
-          <div className="seg" aria-label="verbosity">
-            {[0, 1, 2, 3].map((v) => (
-              <button key={v} onClick={() => setVerbosity(clampVerbosity(v))} data-on={verbosity === v} disabled={running}>
-                {v}
-              </button>
-            ))}
-          </div>
           <button className={`btn btnPrimary`} onClick={run} disabled={running}>
             {running ? "Running" : "Run"}
           </button>
@@ -165,10 +150,6 @@ export default function HomePage() {
       <div className="panel">
         <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} disabled={running} />
         <div className="row" style={{ marginTop: 10, justifyContent: "space-between" }}>
-          <label className="row" style={{ gap: 8, color: "var(--muted)", fontSize: 13 }}>
-            <input type="checkbox" checked={autoScroll} onChange={(e) => setAutoScroll(e.target.checked)} />
-            Auto-scroll
-          </label>
           <div className="muted">
             {convoId ? (
               <>
@@ -180,6 +161,9 @@ export default function HomePage() {
             ) : null}
             {running ? (lastTitle ? `Now: ${lastTitle}` : "Working…") : error ? "Error" : "Idle"}
           </div>
+          <button className="btn" onClick={() => setAutoScroll((v) => !v)} disabled={!items.length}>
+            {autoScroll ? "Lock" : "Follow"}
+          </button>
         </div>
         {error ? <div style={{ marginTop: 8, color: "rgba(244,63,94,0.9)", fontSize: 13, whiteSpace: "pre-wrap" }}>{error}</div> : null}
       </div>
@@ -194,10 +178,10 @@ export default function HomePage() {
             {it.citations && it.citations.length ? (
               <div className="chips" aria-label="citations">
                 {it.citations.slice(0, 3).map((c) => (
-                  <span key={c.url} className="chip" title={c.url}>
+                  <a key={c.url} className="chip" href={c.url} target="_blank" rel="noreferrer" title={c.url}>
                     <img src={c.faviconUrl} alt="" />
                     {c.domain}
-                  </span>
+                  </a>
                 ))}
                 {it.moreCount && it.moreCount > 0 ? <span className="chip">{it.moreCount} more</span> : null}
               </div>
@@ -208,10 +192,10 @@ export default function HomePage() {
         {running ? (
           <div className="item">
             <div className="marker">
-              <Loader2 size={18} color="rgba(11,18,32,0.55)" className="spin" />
+              <Loader2 size={18} color="rgba(11,18,32,0.45)" className="spin" />
             </div>
             <h4 className="h">Working</h4>
-            <div className="p">Waiting for the next step…</div>
+            <div className="p">…</div>
           </div>
         ) : null}
         <div ref={bottomRef} />

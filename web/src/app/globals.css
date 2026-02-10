@@ -1,5 +1,5 @@
 :root {
-  --bg: #f7f7f8;
+  --bg: #ffffff;
   --text: #0b1220;
   --muted: rgba(11, 18, 32, 0.62);
   --line: rgba(11, 18, 32, 0.12);
@@ -90,8 +90,8 @@ pre {
   max-width: 100%;
   border-radius: 16px;
   padding: 12px 12px;
-  border: 1px solid rgba(11, 18, 32, 0.1);
-  background: var(--surface);
+  border: 0;
+  background: transparent;
 }
 
 .msg[data-role="user"] .msgInner {
@@ -120,7 +120,7 @@ pre {
   right: 0;
   bottom: 0;
   padding: 12px 16px 18px;
-  background: linear-gradient(to top, rgba(247, 247, 248, 0.92), rgba(247, 247, 248, 0.65), rgba(247, 247, 248, 0));
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0));
   backdrop-filter: blur(8px);
 }
 
@@ -128,13 +128,14 @@ pre {
   width: 100%;
   max-width: 760px;
   margin: 0 auto;
-  border: 1px solid rgba(11, 18, 32, 0.12);
+  border: 0;
   background: rgba(255, 255, 255, 0.86);
   border-radius: 18px;
   padding: 10px 10px;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 10px;
+  box-shadow: 0 10px 30px rgba(11, 18, 32, 0.08);
 }
 
 .composer textarea {
@@ -164,8 +165,8 @@ pre {
 
 .sendBtn {
   appearance: none;
-  border: 1px solid rgba(59, 130, 246, 0.35);
-  background: rgba(59, 130, 246, 0.1);
+  border: 0;
+  background: rgba(59, 130, 246, 0.12);
   color: rgba(11, 18, 32, 0.86);
   border-radius: 999px;
   padding: 8px 12px;
@@ -181,7 +182,7 @@ pre {
 
 .iconBtn {
   appearance: none;
-  border: 1px solid rgba(11, 18, 32, 0.12);
+  border: 0;
   background: rgba(255, 255, 255, 0.7);
   color: rgba(11, 18, 32, 0.82);
   border-radius: 999px;
@@ -270,7 +271,7 @@ pre {
   padding: 6px 10px;
   border-radius: 999px;
   background: var(--chip);
-  border: 1px solid var(--chipStroke);
+  border: 0;
   color: rgba(11, 18, 32, 0.78);
   font-size: 12px;
   line-height: 1;

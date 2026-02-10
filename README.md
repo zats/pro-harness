@@ -26,19 +26,27 @@ cp .env.example .env
 pnpm build
 ```
 
-## Run
+## Run (CLI)
 
 ```sh
-node dist/cli.js --pretty "Explain X and cite sources"
-node dist/cli.js --jsonl "Do Y"
-node dist/cli.js --max-steps 20 "Research Z"
-node dist/cli.js -vv --pretty "Show more per-step details"
+pnpm dev -- --pretty "Explain X and cite sources"
+pnpm dev -- --jsonl "Do Y"
+pnpm dev -- --max-steps 20 "Research Z"
+pnpm dev -- -vv --pretty "Show more per-step details"
 ```
 
 Notes:
 - In `--pretty` mode, progress logs go to stderr and the final answer goes to stdout.
 - In `--jsonl` mode, stdout is JSONL events, including a final `{"type":"final_answer",...}` line.
 - Pretty mode progress prefixes include `%`, elapsed time, and (when priced) running cost, e.g. `[ 33%][  2m10s][$<0.01]`.
+
+## Run (Web UI)
+
+```sh
+pnpm dev:web
+```
+
+Then open `http://localhost:3000`.
 
 ## Cost Tracking
 

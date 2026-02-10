@@ -9,6 +9,8 @@ import { Message } from "./_components/Message";
 import type { UiItem } from "./types";
 import { PRODUCT_NAME } from "pro-harness-shared";
 
+const DEBUG = process.env.NODE_ENV !== "production";
+
 type AnyEvent =
   | { type: "ui_item"; item: UiItem }
   | { type: "ui_patch"; id: string; patch: Partial<UiItem> }
@@ -57,6 +59,7 @@ export default function HomePage() {
         const txt = await res.text();
         throw new Error(txt || `Request failed: ${res.status}`);
       }
+      if (DEBUG) console.debug("[ui] stream_open");
 
       const reader = res.body.getReader();
       const dec = new TextDecoder();
@@ -77,7 +80,14 @@ export default function HomePage() {
             if (!l.startsWith("data:")) continue;
             const json = l.slice("data:".length).trim();
             if (!json) continue;
-            const evt = JSON.parse(json) as AnyEvent;
+            let evt: AnyEvent;
+            try {
+              evt = JSON.parse(json) as AnyEvent;
+            } catch (e) {
+              if (DEBUG) console.debug("[ui] bad_json", json.slice(0, 200));
+              continue;
+            }
+            if (DEBUG) console.debug("[ui] evt", evt.type);
 
             if (evt.type === "final_answer") {
               setAnswer(String(evt.text ?? ""));
@@ -91,13 +101,16 @@ export default function HomePage() {
                 window.history.replaceState({}, "", `/${encodeURIComponent(id)}`);
               }
             } else if (evt.type === "ui_item") {
+              if (DEBUG) console.debug("[ui] ui_item", { id: evt.item.id, kind: evt.item.kind, title: evt.item.title });
               setItems((prev) => [...prev, evt.item]);
             } else if (evt.type === "ui_patch") {
+              if (DEBUG) console.debug("[ui] ui_patch", { id: evt.id, patchKeys: Object.keys(evt.patch ?? {}) });
               setItems((prev) => prev.map((it) => (it.id === evt.id ? { ...it, ...evt.patch } : it)));
             }
           }
         }
       }
+      if (DEBUG) console.debug("[ui] stream_done");
     } catch (e: any) {
       if (String(e?.name) === "AbortError") return;
       setError(String(e?.message ?? e));

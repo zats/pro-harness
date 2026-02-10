@@ -200,22 +200,11 @@ pre {
   margin: 4px 0 10px;
 }
 
-.activity::before {
-  content: "";
-  position: absolute;
-  left: 11px;
-  top: 2px;
-  bottom: 2px;
-  width: 2px;
-  background: rgba(11, 18, 32, 0.1);
-  border-radius: 2px;
-}
-
 .activityItem {
   position: relative;
   padding: 0 0 16px;
   display: grid;
-  grid-template-columns: 26px 1fr;
+  grid-template-columns: 28px 1fr;
   align-items: start;
 }
 
@@ -224,14 +213,36 @@ pre {
   min-height: 20px;
 }
 
+.activityGutter::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(11, 18, 32, 0.1);
+  border-radius: 2px;
+}
+
+.activityItem:first-child .activityGutter::before {
+  top: 10px;
+}
+
+.activityItem:last-child .activityGutter::before {
+  bottom: 10px;
+}
+
 .activityMarker {
   position: relative;
   left: 0;
-  top: 2px;
+  top: 1px;
   width: 20px;
   height: 20px;
   display: grid;
   place-items: center;
+  background: var(--bg);
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px var(--bg);
 }
 
 .dot {

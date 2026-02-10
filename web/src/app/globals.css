@@ -95,9 +95,10 @@ pre {
 }
 
 .msg[data-role="user"] .msgInner {
-  background: rgba(11, 18, 32, 0.9);
-  color: rgba(255, 255, 255, 0.92);
-  border-color: rgba(11, 18, 32, 0);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: rgba(11, 18, 32, 0.92);
 }
 
 .muted {

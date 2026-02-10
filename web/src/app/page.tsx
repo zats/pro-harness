@@ -39,6 +39,7 @@ export default function HomePage() {
     setConvoId("");
     const input = prompt.trim();
     setSentPrompt(input);
+    setPrompt("");
 
     const ac = new AbortController();
     abortRef.current = ac;

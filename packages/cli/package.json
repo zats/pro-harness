@@ -9,6 +9,8 @@
   "scripts": {
     "build": "pnpm --filter pro-harness-core build && tsc -p tsconfig.json",
     "dev": "pnpm build && node dist/cli.js",
+    "dev:tsc": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "watch": "tsc -p tsconfig.json --watch --preserveWatchOutput",
     "start": "node dist/cli.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

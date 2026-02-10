@@ -6,7 +6,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
-    "dev": "pnpm --filter pro-harness-cli dev --",
-    "dev:web": "pnpm --filter pro-harness-web dev --"
+    "dev": "node scripts/dev-cli.mjs",
+    "dev:web": "node scripts/dev-web.mjs"
   }
 }

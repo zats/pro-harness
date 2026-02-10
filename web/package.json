@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter pro-harness-core build && next dev",
+    "dev:next": "next dev",
     "build": "pnpm --filter pro-harness-core build && next build",
     "start": "next start",
     "lint": "next lint"

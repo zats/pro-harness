@@ -1,8 +1,13 @@
 #!/usr/bin/env node
-import "dotenv/config";
-import { runHarness } from "./harness/runHarness.js";
-import { loadConfig } from "./harness/config.js";
-import { ConsoleReporter } from "./harness/progress/ConsoleReporter.js";
+import dotenv from "dotenv";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { runHarness, loadConfig } from "pro-harness-core";
+import { ConsoleReporter } from "./progress/ConsoleReporter.js";
+
+// Load repo-root .env even when running from packages/cli.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "..", "..", "..", ".env") });
 
 function parseArgs(argv: string[]) {
   const args = argv.slice(2);

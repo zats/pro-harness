@@ -1,4 +1,4 @@
-import type { ProgressEvent, Reporter } from "./events.js";
+import type { ProgressEvent, Reporter } from "pro-harness-core";
 
 type Opts = {
   pretty: boolean;

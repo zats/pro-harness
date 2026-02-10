@@ -14,6 +14,7 @@ type RunArgs = {
   input: string;
   config: HarnessConfig;
   reporter: Reporter;
+  signal?: AbortSignal;
 };
 
 function estimateBaseSteps(spec: TaskSpec): number {
@@ -601,8 +602,13 @@ export async function runHarness(args: RunArgs): Promise<{ finalAnswer: string }
   (args.config as any).__costTracker = costTracker;
   const budget = new StepBudget(args.config.maxSteps);
 
+  const throwIfAborted = () => {
+    if (args.signal?.aborted) throw new Error("aborted");
+  };
+
   const reporter: Reporter = {
     emit: (e) => {
+      throwIfAborted();
       const c = costTracker.summary({
         pricingUsdPer1MTokens: args.config.pricingUsdPer1MTokens as any,
         webSearchUsdPer1KCalls: args.config.webSearchUsdPer1KCalls,
@@ -633,8 +639,10 @@ export async function runHarness(args: RunArgs): Promise<{ finalAnswer: string }
     return label;
   };
 
+  throwIfAborted();
   reporter.emit({ type: "run_start", input: args.input, estimatedTotalSteps: estimated() });
 
+  throwIfAborted();
   const spec = await route(openai, args.config, budget, reporter, args.input, completed, estimated);
   bump("router");
   estimatedTotalSteps = estimateBaseSteps(spec);
@@ -647,8 +655,10 @@ export async function runHarness(args: RunArgs): Promise<{ finalAnswer: string }
 
   // Planning + tool execution for recipes that need it.
   if (spec.recipe === "rag_cited" || spec.recipe === "plan_execute_verify") {
+    throwIfAborted();
     const p = await plan(openai, args.config, budget, reporter, ctx, spec, completed, estimated);
     bump("planner");
+    throwIfAborted();
     const exec = await executePlan(openai, args.config, budget, reporter, ctx, p, completed, estimated);
     bump("executePlan");
     ctx = exec.ctx;
@@ -670,8 +680,10 @@ export async function runHarness(args: RunArgs): Promise<{ finalAnswer: string }
       completedSteps: completed(),
       estimatedTotalSteps: estimated(),
     });
+    throwIfAborted();
     const r = await webSearch(openai, args.config, { query: args.input, topK: 8 }, { costTracker });
     ctx = withEvidence(ctx, r.evidence);
+    throwIfAborted();
     const learned = await summarizeForProgress(openai, args.config, { title: "bootstrap web_search", raw: r.summary });
     reporter.emit({
       type: "step_end",
@@ -700,8 +712,10 @@ export async function runHarness(args: RunArgs): Promise<{ finalAnswer: string }
   const candidates: { cand: Candidate; review: Review }[] = [];
 
   for (let i = 0; i < N; i++) {
+    throwIfAborted();
     const cand = await generateCandidate(openai, args.config, budget, reporter, ctx, spec, overlays[i]!, `C${i + 1}`, completed, estimated);
     bump(`gen:C${i + 1}`);
+    throwIfAborted();
     const review = await critic(openai, args.config, budget, reporter, ctx, spec, cand, completed, estimated);
     bump(`critic:C${i + 1}`);
     candidates.push({ cand, review });
@@ -727,8 +741,10 @@ export async function runHarness(args: RunArgs): Promise<{ finalAnswer: string }
       completedSteps: completed(),
       estimatedTotalSteps: estimated(),
     });
+    throwIfAborted();
     const r = await webSearch(openai, args.config, { query: q, topK: typeof topK === "number" ? topK : 6 }, { costTracker });
     ctx = withEvidence(ctx, r.evidence);
+    throwIfAborted();
     const learned = await summarizeForProgress(openai, args.config, { title: `extra web_search: ${q}`, raw: r.summary });
     reporter.emit({
       type: "step_end",
@@ -744,17 +760,21 @@ export async function runHarness(args: RunArgs): Promise<{ finalAnswer: string }
   // Verification pass for high stakes, and when quality is below threshold.
   const threshold = spec.stakes === "low" ? 6.5 : spec.stakes === "medium" ? 7.5 : 8.0;
   if (spec.stakes === "high" || bestReview.overall_score < threshold) {
+    throwIfAborted();
     const v = await verifier(openai, args.config, budget, reporter, ctx, spec, bestCand, completed, estimated);
     bump("verifier");
     if ((v.required_edits?.length ?? 0) > 0 && budget.snapshot().remaining >= 2) {
+      throwIfAborted();
       bestCand = await repair(openai, args.config, budget, reporter, ctx, spec, bestCand, v.required_edits, completed, estimated);
       bump("repair");
+      throwIfAborted();
       bestReview = await critic(openai, args.config, budget, reporter, ctx, spec, bestCand, completed, estimated);
       bump("re-critic");
     }
   }
 
   // Polish always.
+  throwIfAborted();
   bestCand = await polish(openai, args.config, budget, reporter, ctx, bestCand, completed, estimated);
   bump("polish");
 

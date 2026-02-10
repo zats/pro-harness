@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Square } from "lucide-react";
+import { ArrowUp, Square } from "lucide-react";
 import { ActivityList } from "./_components/ActivityList";
 import { Message } from "./_components/Message";
 import type { UiItem } from "./types";
@@ -163,12 +163,12 @@ export default function HomePage() {
           />
           <div className="composerActions">
             {running ? (
-              <button className="iconBtn" type="button" onClick={stop} aria-label="Stop">
+              <button className="circleBtn" type="button" onClick={stop} aria-label="Stop">
                 <Square size={18} />
               </button>
             ) : (
-              <button className="sendBtn" type="submit" disabled={!prompt.trim()}>
-                Run
+              <button className="circleBtn" type="submit" disabled={!prompt.trim()} aria-label="Run">
+                <ArrowUp size={18} />
               </button>
             )}
           </div>

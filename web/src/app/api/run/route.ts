@@ -64,7 +64,9 @@ async function nanoTitle(openai: OpenAI, args: { kind: "search" | "thought"; inp
         args.input,
       ].join("\n"),
     });
-    return (r.output_text ?? "").trim();
+    const t = (r.output_text ?? "").trim();
+    if (!t) throw new Error("nanoTitle: empty");
+    return t;
   } catch (e: any) {
     if (opts?.debug) console.error("[ui] nanoTitle failed:", e?.message ?? e);
     throw e;
@@ -87,6 +89,7 @@ async function nanoBody(openai: OpenAI, input: string, opts?: { debug?: boolean 
       ].join("\n"),
     });
     const t = (r.output_text ?? "").trim();
+    if (!t) throw new Error("nanoBody: empty");
     // As a final guard, cap to keep the activity feed compact.
     return t.length > 260 ? `${t.slice(0, 246).trimEnd()}…` : t;
   } catch (e: any) {
@@ -112,6 +115,11 @@ export async function POST(req: Request) {
 
   const convoId = body.data.id ?? newConversationId();
   const debug = process.env.NODE_ENV !== "production";
+  const dbg = (...args: any[]) => {
+    if (!debug) return;
+    // eslint-disable-next-line no-console
+    console.error("[run]", convoId, ...args);
+  };
   try {
     await initConversation({ id: convoId, prompt: body.data.prompt });
   } catch (e: any) {
@@ -133,11 +141,19 @@ export async function POST(req: Request) {
 
       const send = (obj: any) => {
         if (closed) return;
+        dbg("sse_send", obj?.type ?? "unknown");
         controller.enqueue(enc.encode(toSse({ ...obj, elapsedMs: elapsedMs() })));
       };
 
       const uiItem = (item: UiItem) => send({ type: "ui_item", item });
       const uiPatch = (id: string, patch: Partial<UiItem>) => send({ type: "ui_patch", id, patch });
+
+      dbg("start", {
+        summarizeUi: body.data.summarizeUi,
+        verbosity: body.data.verbosity,
+        promptLen: body.data.prompt.length,
+        promptPreview: body.data.prompt.replace(/\s+/g, " ").slice(0, 120),
+      });
 
       // First event: conversation id, so the client can update URL.
       void appendEvent({ id: convoId, event: { type: "convo_id", id: convoId } });
@@ -165,6 +181,7 @@ export async function POST(req: Request) {
 
           // Convert core progress into a small set of user-facing items.
           if (e.type === "web_search_result") {
+            dbg("core_event", { type: e.type, stepId: e.stepId, query: e.query, sources: (e.sources ?? []).length });
             const stepId = e.stepId;
             const id = newId("search");
             searchByStepId.set(stepId, id);
@@ -198,11 +215,13 @@ export async function POST(req: Request) {
                 : `Searching for ${e.query}`;
               const item: UiItem = { id, kind: "search", title, citations, moreCount };
               await appendEvent({ id: convoId, event: { type: "ui_item", item } });
+              dbg("ui_item", { id: item.id, kind: item.kind, title: item.title, citations: item.citations?.length ?? 0 });
               uiItem(item);
             })().catch((err) => {
               if (debug) console.error("[ui] failed to create search item:", err?.message ?? err);
               const item: UiItem = { id, kind: "search", title: `Searching for ${e.query}`, citations, moreCount };
               void appendEvent({ id: convoId, event: { type: "ui_item", item } });
+              dbg("ui_item_fallback", { id: item.id, kind: item.kind, title: item.title, citations: item.citations?.length ?? 0 });
               uiItem(item);
             });
 
@@ -211,6 +230,9 @@ export async function POST(req: Request) {
           }
 
           if (e.type === "step_end") {
+            if (e.stepId === "planner") {
+              dbg("core_event", { type: e.type, stepId: e.stepId, learnedLen: e.learned?.length ?? 0 });
+            }
             // Attach search summaries to the search item created by web_search_result.
             const sid = searchByStepId.get(e.stepId);
             if (sid) {
@@ -219,6 +241,7 @@ export async function POST(req: Request) {
                   ? await nanoBody(openai, `Query result summary:\n${e.learned}`, { debug })
                   : e.learned;
                 await appendEvent({ id: convoId, event: { type: "ui_patch", id: sid, patch: { body: text } } });
+                dbg("ui_patch", { id: sid, bodyLen: text.length });
                 uiPatch(sid, { body: text });
               })().catch((err) => {
                 if (debug) console.error("[ui] failed to summarize search result; falling back to raw learned:", err?.message ?? err);
@@ -236,11 +259,13 @@ export async function POST(req: Request) {
                 const text = await nanoBody(openai, `What the harness will do next (high level):\n${e.learned}`, { debug });
                 const item: UiItem = { id, kind: "thought", title, body: text };
                 await appendEvent({ id: convoId, event: { type: "ui_item", item } });
+                dbg("ui_item", { id: item.id, kind: item.kind, title: item.title, bodyLen: item.body?.length ?? 0 });
                 uiItem(item);
               })().catch((err) => {
                 if (debug) console.error("[ui] failed to create planning item:", err?.message ?? err);
                 const item: UiItem = { id, kind: "thought", title: "Planning next steps", body: e.learned };
                 void appendEvent({ id: convoId, event: { type: "ui_item", item } });
+                dbg("ui_item_fallback", { id: item.id, kind: item.kind, title: item.title, bodyLen: item.body?.length ?? 0 });
                 uiItem(item);
               });
               pending.push(p);
@@ -262,11 +287,13 @@ export async function POST(req: Request) {
         } catch (err: any) {
           if (!req.signal.aborted) {
             const msg = String(err?.message ?? err);
+            dbg("run_error", msg);
             await appendEvent({ id: convoId, event: { type: "error", message: msg } });
             await finishConversation({ id: convoId, error: msg });
             send({ type: "error", message: msg, stack: String(err?.stack ?? "") });
           }
         } finally {
+          dbg("close");
           closed = true;
           try {
             controller.close();

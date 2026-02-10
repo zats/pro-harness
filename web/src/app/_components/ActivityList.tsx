@@ -29,10 +29,10 @@ export function ActivityList({ items, running }: { items: UiItem[]; running?: bo
                     {c.domain}
                   </a>
                 ))}
-                {it.moreCount && it.moreCount > 0 ? <span className="chip">{it.moreCount} more</span> : null}
-              </div>
-            ) : null}
-            {it.body ? <div className="p">{it.body}</div> : null}
+            {it.moreCount && it.moreCount > 0 ? <span className="chip">{it.moreCount} more</span> : null}
+          </div>
+        ) : null}
+            {it.body ? <div className="activityBody">{it.body}</div> : null}
           </div>
         </div>
       ))}

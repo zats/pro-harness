@@ -259,6 +259,18 @@ pre {
   white-space: pre-wrap;
 }
 
+.activityBody {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;

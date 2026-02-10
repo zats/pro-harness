@@ -48,33 +48,51 @@ function faviconUrl(domain: string) {
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
 }
 
-async function nanoTitle(openai: OpenAI, args: { kind: "search" | "thought"; input: string }) {
-  const r = await openai.responses.create({
-    model: "gpt-5-nano",
-    reasoning: { effort: "low" } as any,
-    input: [
-      `Write a short UI headline for a harness ${args.kind}.`,
-      'Style: plain English, like "Searching for …" or "Gathering …".',
-      "No quotes, no markdown, no trailing punctuation.",
-      "",
-      args.input,
-    ].join("\n"),
-  });
-  return (r.output_text ?? "").trim();
+async function nanoTitle(openai: OpenAI, args: { kind: "search" | "thought"; input: string }, opts?: { debug?: boolean }) {
+  try {
+    const r = await openai.responses.create({
+      model: "gpt-5-nano",
+      reasoning: { effort: "low" } as any,
+      // Keep headlines short and stable.
+      max_output_tokens: 24 as any,
+      input: [
+        `Write a short UI headline for a harness ${args.kind}.`,
+        'Style: plain English, like "Searching for …" or "Gathering …".',
+        "Hard limits: <= 9 words, <= 60 characters.",
+        "No quotes, no markdown, no trailing punctuation.",
+        "",
+        args.input,
+      ].join("\n"),
+    });
+    return (r.output_text ?? "").trim();
+  } catch (e: any) {
+    if (opts?.debug) console.error("[ui] nanoTitle failed:", e?.message ?? e);
+    throw e;
+  }
 }
 
-async function nanoBody(openai: OpenAI, input: string) {
-  const r = await openai.responses.create({
-    model: "gpt-5-nano",
-    reasoning: { effort: "low" } as any,
-    input: [
-      "Summarize this in 1-2 short sentences for a UI.",
-      "Be concrete, no fluff, no internal meta, no policy talk.",
-      "",
-      input,
-    ].join("\n"),
-  });
-  return (r.output_text ?? "").trim();
+async function nanoBody(openai: OpenAI, input: string, opts?: { debug?: boolean }) {
+  try {
+    const r = await openai.responses.create({
+      model: "gpt-5-nano",
+      reasoning: { effort: "low" } as any,
+      // Force short UI summaries.
+      max_output_tokens: 80 as any,
+      input: [
+        "Summarize this for a UI.",
+        "Hard limits: 1-2 sentences total, <= 220 characters.",
+        "Be concrete. No fluff. No internal meta.",
+        "",
+        input,
+      ].join("\n"),
+    });
+    const t = (r.output_text ?? "").trim();
+    // As a final guard, cap to keep the activity feed compact.
+    return t.length > 260 ? `${t.slice(0, 246).trimEnd()}…` : t;
+  } catch (e: any) {
+    if (opts?.debug) console.error("[ui] nanoBody failed:", e?.message ?? e);
+    throw e;
+  }
 }
 
 export async function POST(req: Request) {
@@ -93,6 +111,7 @@ export async function POST(req: Request) {
   const cfg = loadConfig({ pretty: false, jsonl: true, verbosity: 3 });
 
   const convoId = body.data.id ?? newConversationId();
+  const debug = body.data.verbosity >= 2 || process.env.HARNESS_DEBUG === "1";
   try {
     await initConversation({ id: convoId, prompt: body.data.prompt });
   } catch (e: any) {
@@ -171,12 +190,17 @@ export async function POST(req: Request) {
             // Generate a short, friendly title from the query.
             const p = (async () => {
               const title = body.data.summarizeUi
-                ? await nanoTitle(openai, { kind: "search", input: `Query: ${e.query}\nDomains: ${domains.map((d) => d.domain).join(", ")}` })
+                ? await nanoTitle(
+                    openai,
+                    { kind: "search", input: `Query: ${e.query}\nDomains: ${domains.map((d) => d.domain).join(", ")}` },
+                    { debug },
+                  )
                 : `Searching for ${e.query}`;
               const item: UiItem = { id, kind: "search", title, citations, moreCount };
               await appendEvent({ id: convoId, event: { type: "ui_item", item } });
               uiItem(item);
-            })().catch(() => {
+            })().catch((err) => {
+              if (debug) console.error("[ui] failed to create search item:", err?.message ?? err);
               const item: UiItem = { id, kind: "search", title: `Searching for ${e.query}`, citations, moreCount };
               void appendEvent({ id: convoId, event: { type: "ui_item", item } });
               uiItem(item);
@@ -191,10 +215,15 @@ export async function POST(req: Request) {
             const sid = searchByStepId.get(e.stepId);
             if (sid) {
               const p = (async () => {
-                const text = body.data.summarizeUi ? await nanoBody(openai, `Query result summary:\n${e.learned}`) : e.learned;
+                const text = body.data.summarizeUi
+                  ? await nanoBody(openai, `Query result summary:\n${e.learned}`, { debug })
+                  : e.learned;
                 await appendEvent({ id: convoId, event: { type: "ui_patch", id: sid, patch: { body: text } } });
                 uiPatch(sid, { body: text });
-              })().catch(() => uiPatch(sid, { body: e.learned }));
+              })().catch((err) => {
+                if (debug) console.error("[ui] failed to summarize search result; falling back to raw learned:", err?.message ?? err);
+                uiPatch(sid, { body: e.learned });
+              });
               pending.push(p);
               return;
             }
@@ -203,12 +232,13 @@ export async function POST(req: Request) {
             if (body.data.summarizeUi && e.stepId === "planner") {
               const id = newId("thought");
               const p = (async () => {
-                const title = await nanoTitle(openai, { kind: "thought", input: `User prompt:\n${body.data.prompt}` });
-                const text = await nanoBody(openai, `What the harness will do next (high level):\n${e.learned}`);
+                const title = await nanoTitle(openai, { kind: "thought", input: `User prompt:\n${body.data.prompt}` }, { debug });
+                const text = await nanoBody(openai, `What the harness will do next (high level):\n${e.learned}`, { debug });
                 const item: UiItem = { id, kind: "thought", title, body: text };
                 await appendEvent({ id: convoId, event: { type: "ui_item", item } });
                 uiItem(item);
-              })().catch(() => {
+              })().catch((err) => {
+                if (debug) console.error("[ui] failed to create planning item:", err?.message ?? err);
                 const item: UiItem = { id, kind: "thought", title: "Planning next steps", body: e.learned };
                 void appendEvent({ id: convoId, event: { type: "ui_item", item } });
                 uiItem(item);
